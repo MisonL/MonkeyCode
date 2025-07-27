@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/wire"
+	"github.com/labstack/echo/v4"
 
 	"github.com/GoYoko/web"
 
@@ -32,6 +33,16 @@ func main() {
 	}
 
 	s.web.PrintRoutes()
+
+	// Serve frontend static files
+	e := s.web.Echo()
+	e.Static("/", "/app/ui/dist")
+
+	// Add a fallback route for SPA to serve index.html for all non-API routes
+	// This must be registered after static routes to avoid conflicts
+	e.GET("/*", func(c echo.Context) error {
+		return c.File("/app/ui/dist/index.html")
+	})
 
 	if err := store.MigrateSQL(s.config, s.logger); err != nil {
 		panic(err)

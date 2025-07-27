@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  monkey-code:
+    build: .
+    ports:
+      - "8080:8888"
+    depends_on:
+      - monkeycode-db
+      - monkeycode-redis
+    env_file:
+      - .env
+    restart: on-failure
+    networks:
+      - monkeycode-net
+
+  monkeycode-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: monkeycode
+      POSTGRES_USER: monkey
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - monkeycode-net
+
+  monkeycode-redis:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: password
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    networks:
+      - monkeycode-net
+
+volumes:
+  postgres_data:
+
+networks:
+  monkeycode-net:
