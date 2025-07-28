@@ -10,6 +10,9 @@ services:
       - monkeycode-redis
     env_file:
       - .env
+    environment:
+      - MONKEYCODE_ADMIN_USER=${MONKEYCODE_ADMIN_USER}
+      - MONKEYCODE_ADMIN_PASSWORD=${MONKEYCODE_ADMIN_PASSWORD}
     restart: on-failure
     networks:
       - monkeycode-net
