@@ -3,8 +3,11 @@ package main
 import (
 	"context"
 
+	"strings"
+
 	"github.com/google/wire"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/GoYoko/web"
 
@@ -28,6 +31,14 @@ func main() {
 	s.version.Print()
 	s.logger.With("config", s.config).Debug("config")
 
+	if err := store.MigrateSQL(s.config, s.logger); err != nil {
+		panic(err)
+	}
+
+	if err := s.userV1.InitAdmin(); err != nil {
+		panic(err)
+	}
+
 	if s.config.Debug {
 		s.web.Swagger("MonkeyCode API", "/reference", string(docs.SwaggerJSON), web.WithBasicAuth("mc", "mc88"))
 	}
@@ -36,21 +47,19 @@ func main() {
 
 	// Serve frontend static files
 	e := s.web.Echo()
-	e.Static("/", "/app/ui/dist")
-
-	// Add a fallback route for SPA to serve index.html for all non-API routes
-	// This must be registered after static routes to avoid conflicts
-	e.GET("/*", func(c echo.Context) error {
-		return c.File("/app/ui/dist/index.html")
-	})
-
-	if err := store.MigrateSQL(s.config, s.logger); err != nil {
-		panic(err)
-	}
-
-	if err := s.userV1.InitAdmin(); err != nil {
-		panic(err)
-	}
+	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
+		Root:       "/app/ui/dist",
+		Index:      "index.html",
+		HTML5:      true,
+		Browse:     false,
+		IgnoreBase: true,
+		Skipper: func(c echo.Context) bool {
+			// Skip API routes
+			return strings.HasPrefix(c.Request().URL.Path, "/api") ||
+				strings.HasPrefix(c.Request().URL.Path, "/v1") ||
+				strings.HasPrefix(c.Request().URL.Path, "/reference")
+		},
+	}))
 
 	if err := s.report.ReportInstallation(); err != nil {
 		panic(err)

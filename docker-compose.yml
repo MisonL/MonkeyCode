@@ -4,7 +4,7 @@ services:
   monkey-code:
     build: .
     ports:
-      - "8080:8888"
+      - "8889:8888"
     depends_on:
       - monkeycode-db
       - monkeycode-redis
